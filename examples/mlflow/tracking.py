@@ -26,5 +26,3 @@ if __name__ == "__main__":
         mlflow.log_metric("score", score)
         mlflow.sklearn.log_model(lr, "model")
         print("Model saved in run %s" % active_run.info.run_uuid)
-        mlflow.log_param("state", "COMPLETED")
-
