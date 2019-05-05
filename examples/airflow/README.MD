@@ -1,6 +1,5 @@
-#Airflow
+# Airflow
 
-Initialisation:
 ~~~~
 # airflow needs a home, ~/airflow is the default,
 # but you can lay foundation somewhere else if you prefer
