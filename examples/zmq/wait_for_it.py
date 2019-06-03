@@ -1,8 +1,5 @@
 import zmq, time, subprocess
 from multiprocessing import Process
-import setproctitle
-
-setproctitle.setproctitle("Python: waiting_for_it")
 
 def call_is_waiting_for_it():
     args = ["python",

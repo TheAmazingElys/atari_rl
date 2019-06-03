@@ -1,9 +1,5 @@
-import sys
 import zmq
-import setproctitle
 from timeit import default_timer as timer
-
-setproctitle.setproctitle("Python: is_waiting_for_it")
 
 # Socket to talk to server
 context = zmq.Context()
