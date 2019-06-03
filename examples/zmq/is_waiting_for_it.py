@@ -12,7 +12,6 @@ socket_REQ = context.socket(zmq.REQ)
 socket_REQ.connect("tcp://127.0.0.1:5557")
 
 start = timer()
-message_set = set()
 while True:
     if timer() - start > 10:
         print("timeout")
