@@ -14,4 +14,4 @@ if __name__ == "__main__":
 
     monitor = Monitor(agent, game)
 
-    game.run(horizon=100000)
+    game.run(horizon=10000000)

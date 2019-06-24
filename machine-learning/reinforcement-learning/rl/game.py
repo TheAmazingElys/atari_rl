@@ -30,7 +30,7 @@ class Game():
             if self.done:
                 self.__init_new_game__() # Initialisation of the new game
                 if next(self.it_s_test_time):
-                    if hasattr(self.agent, "eval")
+                    if hasattr(self.agent, "eval"):
                         self.agent.eval()
                     test_time = True
                 else:

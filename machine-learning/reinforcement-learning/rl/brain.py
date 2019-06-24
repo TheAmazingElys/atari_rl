@@ -109,6 +109,9 @@ class DQN(torch.nn.Module):
             if hasattr(module, "reset_noise"):
                 module.reset_noise()
 
+    def save_state_dict(self, PATH):
+        torch.save(self.state_dict(), PATH)
+
 class AtariDQN(DQN):
     """ DQN with adequate convolution layers for atari games"""
     def __init__(self, actions):

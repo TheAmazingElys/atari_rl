@@ -24,7 +24,7 @@ class RandomAgent():
         pass
 
 class DQNParameters():
-    def __init__(self, clipping = 1, capacity = 100000, gamma = 0.99, lr = 1E-4, batch_size = 32, frozen_steps = 1000):
+    def __init__(self, clipping = 1, capacity = 100000, gamma = 0.99, lr = 0.0000625, batch_size = 32, frozen_steps = 32000):
         """
         clipping : clipping of reward
         capacity : the capacity of the memory
@@ -50,13 +50,18 @@ class DoubleDQN():
         """
 
         self.on_loss_computed = Signal()
-
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.DQN = DQN.to(self.device)
-        self.memory = PrioritizedMemory(parameters.capacity)
+
+        self.DQN = DQN.to(self.device).train()
+
+        self.frozen_DQN = copy.deepcopy(self.DQN).eval()
+        for param in self.frozen_DQN.parameters():
+            param.requires_grad = False
         self._update_frozen()
 
-        self.optimizer = optim.Adam(self.DQN.parameters())
+        self.memory = PrioritizedMemory(parameters.capacity)
+
+        self.optimizer = optim.Adam(self.DQN.parameters(), lr = parameters.lr)
         self.parameters = parameters
 
         self.it_s_batch_time = generator_true_every(self.parameters.batch_size)
@@ -72,13 +77,12 @@ class DoubleDQN():
         Here I stand and here I stay
         Let the storm rage on
         """
-        self.frozen_DQN = copy.deepcopy(self.DQN)
-        self.frozen_DQN.to(self.device).eval()
+        self.frozen_DQN.load_state_dict(self.DQN.state_dict())
 
 
     def select_action(self, state):
         """ Return the selected action """
-        return numpy.argmax(self.DQN(torch.FloatTensor([state], device = self.device)).data.numpy()[0])
+        return numpy.argmax(self.DQN(torch.FloatTensor([state]).to(self.device)).data.numpy()[0])
 
 
     def observe(self, state, action, reward, next_state, is_terminal): 
@@ -94,8 +98,8 @@ class DoubleDQN():
         Tensors are unsqueezed because the DQN requires a batch as input
 
         """
-        Q_value = self.DQN(torch.FloatTensor(state).unsqueeze(0), torch.LongTensor(numpy.array(action).reshape(1,-1)))[0].data.numpy()
-        next_Q_value = self.parameters.gamma * numpy.amax(self.DQN(torch.FloatTensor(next_state).unsqueeze(0))[0].data.numpy()) if not is_terminal else 0
+        Q_value = self.DQN(torch.FloatTensor(state).to(self.device).unsqueeze(0), torch.LongTensor(numpy.array(action).reshape(1,-1)).to(self.device))[0].data.numpy()
+        next_Q_value = self.parameters.gamma * numpy.amax(self.DQN(torch.FloatTensor(next_state).to(self.device).unsqueeze(0))[0].data.numpy()) if not is_terminal else 0
         error = abs(reward + next_Q_value - Q_value)
 
         self.memory.add(error, state, action, reward, next_state, is_terminal)
@@ -103,7 +107,7 @@ class DoubleDQN():
         if next(self.it_s_update_frozen_time):
             self._update_frozen()
         
-        if next(self.it_s_batch_time):
+        if next(self.it_s_batch_time) and self.memory.total() > 10000:
             self._replay()
 
     def train(self):
@@ -111,7 +115,10 @@ class DoubleDQN():
         
     def eval(self):
         self.DQN.eval()
-        
+
+    def save(self):
+        self.DQN.save_state_dict("model.torch")
+
     def _reset_noise(self):
         if hasattr(self.DQN, "reset_noise"):
             self.DQN.reset_noise()
@@ -127,12 +134,12 @@ class DoubleDQN():
         batch = Transition(*zip(*transitions))
 
         state_values = self.DQN(\
-            torch.FloatTensor(batch.state, device = self.device),\
-            torch.LongTensor(batch.action, device = self.device).unsqueeze(1)\
+            torch.FloatTensor(batch.state).to(self.device),\
+            torch.LongTensor(batch.action).to(self.device).unsqueeze(1)\
         )
         try:
-            expected_state_values = torch.FloatTensor(batch.reward, device = self.device).unsqueeze(1)\
-                + self.parameters.gamma * self.DQN(torch.FloatTensor(batch.next_state, device = self.device)).max(1, True)[0]*(1 - torch.FloatTensor(batch.terminal, device = self.device).unsqueeze(1))
+            expected_state_values = torch.FloatTensor(batch.reward).to(self.device).unsqueeze(1)\
+                + self.parameters.gamma * self.DQN(torch.FloatTensor(batch.next_state).to(self.device)).max(1, True)[0]*(1 - torch.FloatTensor(batch.terminal).to(self.device).unsqueeze(1))
         except:
             import pdb; pdb.set_trace()
             
