@@ -1,0 +1,8 @@
+matplotlib
+gym
+gym[atari]
+imageio
+opencv-python
+torch
+torchvision
+sympy

@@ -1,0 +1,8 @@
+
+scripts/\.DS_Store
+
+\.DS_Store
+
+machine-learning/reinforcement-learning/rl/__pycache__/
+
+*.pyc
