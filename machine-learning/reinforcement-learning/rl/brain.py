@@ -101,7 +101,7 @@ class DQN(torch.nn.Module):
         x = self.input_layer(x).flatten(start_dim=1)
         value = self.value(F.relu(self.value_layer(x)))
         advantage = self.advantage(F.relu(self.advantage_layer(x)))
-        advantage_value =  self.compute_advantage_value(value, advantage)
+        advantage_value =  self.compute_advantage_value(advantage, value)
         return DQN.gather(advantage_value, actions)
 
     def reset_noise(self):

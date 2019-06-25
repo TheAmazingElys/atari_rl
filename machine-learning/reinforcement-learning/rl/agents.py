@@ -36,6 +36,7 @@ class DQNParameters():
         self.capacity = capacity
         self.batch_size = batch_size
         self.frozen_steps = frozen_steps
+        self.waiting_time = 10000
 
 class DoubleDQN():
     """
@@ -66,7 +67,8 @@ class DoubleDQN():
 
         self.it_s_batch_time = generator_true_every(self.parameters.batch_size)
         self.it_s_update_frozen_time = generator_true_every(self.parameters.frozen_steps)
-        
+
+        self.it_s_action_debug_time = generator_true_every(1000)
 
     def _update_frozen(self):
         """
@@ -79,11 +81,18 @@ class DoubleDQN():
         """
         self.frozen_DQN.load_state_dict(self.DQN.state_dict())
 
-
     def select_action(self, state):
         """ Return the selected action """
-        return numpy.argmax(self.DQN(torch.FloatTensor([state]).to(self.device)).data.numpy()[0])
 
+        values = self.DQN(torch.FloatTensor([state]).to(self.device)).cpu().data.numpy()[0]
+        if self.memory.total() > self.parameters.waiting_time:
+            selected_action = numpy.argmax(values)
+            if next(self.it_s_action_debug_time):
+                print(selected_action, values)
+        else:
+            selected_action = numpy.random.randint(len(values))
+
+        return selected_action
 
     def observe(self, state, action, reward, next_state, is_terminal): 
         """
@@ -93,21 +102,12 @@ class DoubleDQN():
         if self.parameters.clipping is not None: # Clip the reward
             reward = numpy.clip(reward, -self.parameters.clipping, self.parameters.clipping)
         
-        """ 
-        Compute the error to update memory weights 
-        Tensors are unsqueezed because the DQN requires a batch as input
-
-        """
-        Q_value = self.DQN(torch.FloatTensor(state).to(self.device).unsqueeze(0), torch.LongTensor(numpy.array(action).reshape(1,-1)).to(self.device))[0].data.numpy()
-        next_Q_value = self.parameters.gamma * numpy.amax(self.DQN(torch.FloatTensor(next_state).to(self.device).unsqueeze(0))[0].data.numpy()) if not is_terminal else 0
-        error = abs(reward + next_Q_value - Q_value)
-
-        self.memory.add(error, state, action, reward, next_state, is_terminal)
+        self.memory.add(10, state, action, reward, next_state, is_terminal)
     
         if next(self.it_s_update_frozen_time):
             self._update_frozen()
         
-        if next(self.it_s_batch_time) and self.memory.total() > 10000:
+        if next(self.it_s_batch_time) and self.memory.total() > self.parameters.waiting_time:
             self._replay()
 
     def train(self):
@@ -144,7 +144,7 @@ class DoubleDQN():
             import pdb; pdb.set_trace()
             
         loss = F.smooth_l1_loss(state_values, expected_state_values)# Huber Loss
-        self.on_loss_computed.emit(loss.data.numpy()) # Emit the computed loss
+        self.on_loss_computed.emit(loss.cpu().data.numpy()) # Emit the computed loss
 
         self.optimizer.zero_grad()
         loss.backward()
