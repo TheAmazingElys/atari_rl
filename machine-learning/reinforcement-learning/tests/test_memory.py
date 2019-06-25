@@ -10,7 +10,7 @@ def test_memory():
     indexes, transitions = zip(*memory.sample(2))
 
     assert indexes == (9,10)
-    assert transitions == (Transition(state=1, action=2, next_state=3, reward=4, terminal=5), Transition(state=4, action=5, next_state=6, reward=5, terminal=2))
+    assert transitions == (Transition(state=1, action=2, reward=3, next_state=4, terminal=5), Transition(state=4, action=5, reward=6, next_state=5, terminal=2))
 
     """ Example of batch creation """
-    assert Transition(*zip(*transitions))  == Transition(state=(1, 4), action=(2, 5), next_state=(3, 6), reward=(4, 5), terminal=(5, 2))
+    assert Transition(*zip(*transitions))  == Transition(state=(1, 4), action=(2, 5), reward=(3, 6), next_state=(4, 5), terminal=(5, 2))

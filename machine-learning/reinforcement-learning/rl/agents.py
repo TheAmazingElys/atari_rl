@@ -24,7 +24,7 @@ class RandomAgent():
         pass
 
 class DQNParameters():
-    def __init__(self, clipping = 1, capacity = 100000, gamma = 0.99, lr = 0.0000625, batch_size = 32, frozen_steps = 32000):
+    def __init__(self, clipping = 1, capacity = 100000, gamma = 0.99, lr = 0.0000625, batch_size = 32, replay_period = 4, frozen_steps = 32000, waiting_time = 80000):
         """
         clipping : clipping of reward
         capacity : the capacity of the memory
@@ -35,8 +35,9 @@ class DQNParameters():
         self.lr = lr
         self.capacity = capacity
         self.batch_size = batch_size
+        self.replay_period = replay_period
         self.frozen_steps = frozen_steps
-        self.waiting_time = 10000
+        self.waiting_time = waiting_time
 
 class DoubleDQN():
     """
@@ -65,7 +66,7 @@ class DoubleDQN():
         self.optimizer = optim.Adam(self.DQN.parameters(), lr = parameters.lr)
         self.parameters = parameters
 
-        self.it_s_batch_time = generator_true_every(self.parameters.batch_size)
+        self.it_s_replay_time = generator_true_every(self.parameters.batch_size)
         self.it_s_update_frozen_time = generator_true_every(self.parameters.frozen_steps)
 
         self.it_s_action_debug_time = generator_true_every(1000)
@@ -83,16 +84,17 @@ class DoubleDQN():
 
     def select_action(self, state):
         """ Return the selected action """
+        with torch.no_grad():
+            self._reset_noise()
+            values = self.DQN(torch.FloatTensor([state]).to(self.device)).cpu().data.numpy()[0]
+            if self.memory.total() > self.parameters.waiting_time:
+                selected_action = numpy.argmax(values)
+                if next(self.it_s_action_debug_time):
+                    print(selected_action, values)
+            else:
+                selected_action = numpy.random.randint(len(values))
 
-        values = self.DQN(torch.FloatTensor([state]).to(self.device)).cpu().data.numpy()[0]
-        if self.memory.total() > self.parameters.waiting_time:
-            selected_action = numpy.argmax(values)
-            if next(self.it_s_action_debug_time):
-                print(selected_action, values)
-        else:
-            selected_action = numpy.random.randint(len(values))
-
-        return selected_action
+            return selected_action
 
     def observe(self, state, action, reward, next_state, is_terminal): 
         """
@@ -107,7 +109,7 @@ class DoubleDQN():
         if next(self.it_s_update_frozen_time):
             self._update_frozen()
         
-        if next(self.it_s_batch_time) and self.memory.total() > self.parameters.waiting_time:
+        if next(self.it_s_replay_time) and self.memory.total() > self.parameters.waiting_time/2:
             self._replay()
 
     def train(self):
@@ -133,16 +135,16 @@ class DoubleDQN():
         # to Transition of batch-arrays.
         batch = Transition(*zip(*transitions))
 
+        self._reset_noise()
+
         state_values = self.DQN(\
             torch.FloatTensor(batch.state).to(self.device),\
             torch.LongTensor(batch.action).to(self.device).unsqueeze(1)\
         )
-        try:
+        with torch.no_grad():
             expected_state_values = torch.FloatTensor(batch.reward).to(self.device).unsqueeze(1)\
                 + self.parameters.gamma * self.DQN(torch.FloatTensor(batch.next_state).to(self.device)).max(1, True)[0]*(1 - torch.FloatTensor(batch.terminal).to(self.device).unsqueeze(1))
-        except:
-            import pdb; pdb.set_trace()
-            
+
         loss = F.smooth_l1_loss(state_values, expected_state_values)# Huber Loss
         self.on_loss_computed.emit(loss.cpu().data.numpy()) # Emit the computed loss
 
@@ -151,5 +153,3 @@ class DoubleDQN():
         for param in self.DQN.parameters():
             param.grad.data.clamp_(-1, 1)
         self.optimizer.step()
-
-        self._reset_noise()

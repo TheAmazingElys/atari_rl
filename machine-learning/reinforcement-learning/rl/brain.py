@@ -31,16 +31,25 @@ def compute_output(input_size, kernel, padding, stride = 1, dilatation = 1):
 
     return tuple(output)
 
+class PolecartLayer(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.size = 32
+        self.layers = nn.Sequential(nn.Linear(8, 32), nn.ReLU(), nn.Linear(32, 32), nn.ReLU())
+
+    def forward(self, x):
+        return self.layers(x.flatten(start_dim=1))
+
 class AtariConvolution(torch.nn.Module):
 
     def __init__(self):
         super(AtariConvolution, self).__init__()
         self.input_shape = (84,84)
         self.kernel_sizes = [5, 5, 3]
-        self.padding = [0, 0]
-        self.stride = [5, 5]
+        self.padding = [2, 2, 1]
+        self.stride = [3, 3, 1]
 
-        self.out_channels = [32, 64]
+        self.out_channels = [32, 32, 64]
 
         self.in_channels = [4]+self.out_channels[:-1]
 

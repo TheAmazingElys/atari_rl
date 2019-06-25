@@ -1,25 +1,32 @@
 import gym, numpy, imageio
 from enum import Enum
+from rl.brain import AtariConvolution, PolecartLayer
 from rl.preprocessing import ProcessBuffer, transform_state
 from rl.utils import Signal
 
 class EnvNames(Enum):
-
     SPACE_INVADER = 'SpaceInvadersNoFrameskip-v4'
+    BREAKOUT = 'Breakout-v0'
+    POLECART = 'CartPole-v0'
+
+def get_env_and_input_layer(env_name = EnvNames.POLECART, render=False):
+    if env_name == EnvNames.POLECART:
+        return (Environment(env_name, NUM_FRAMES=2, render = render), PolecartLayer())
+    else:
+        return (AtariEnvironment(env_name, render = render), AtariConvolution())
 
 class Environment():
 
-    def __init__(self, env_name = EnvNames.SPACE_INVADER, NUM_FRAMES = 4, process_buffer = ProcessBuffer(4, transform_state), render = False):
+    def __init__(self, env_name = EnvNames.SPACE_INVADER, NUM_FRAMES = 4, process_buffer = ProcessBuffer, render = False):
         
         self.on_new_state = Signal()
 
-        self.env = gym.make(env_name)
-        self.life_count = None # To stop the game after the first life loss
+        self.env = gym.make(env_name.value)
         self.NUM_FRAMES = NUM_FRAMES # The number of time the action is repeated
 
         self.render = render
 
-        self.process_buffer = process_buffer
+        self.process_buffer = process_buffer(NUM_FRAMES) if type(process_buffer) == type else process_buffer
         
         state = self.env.reset()
         
@@ -35,17 +42,7 @@ class Environment():
     
     def get_state_shape(self):
         return self.shape
-    
-    def update_life_count(self, info, done = False):
 
-        if self.life_count is None:
-            self.life_count = info['ale.lives']
-            
-        if info['ale.lives'] < self.life_count and not done:
-            self.life_count = info['ale.lives']
-            done = True
-            
-        return done
 
     def reset(self):
         """ Reset the environment and return the new state """
@@ -67,7 +64,7 @@ class Environment():
             state, reward, done, info = self.env.step(action)
             states.append(state)
             rewards += reward
-            done = self.update_life_count(info, done)
+            done = self.update_done(info, done)
             if done:
                 info = None
                 rewards = 0
@@ -82,3 +79,30 @@ class Environment():
             self.env.render()
 
         return state, rewards, done, info
+
+    def update_done(self, info, done):
+        return done
+
+class AtariEnvironment(Environment):
+
+    def __init__(self, env_name = EnvNames.SPACE_INVADER, render = False):
+        
+        super().__init__(env_name, 4, ProcessBuffer(4, transform_state), render)
+
+        self.life_count = None # To stop the game after the first life loss
+    
+    def update_done(self, info, done = False):
+
+        if self.life_count is None:
+            self.life_count = info['ale.lives']
+            
+        if info['ale.lives'] < self.life_count and not done:
+            self.life_count = info['ale.lives']
+            done = True
+            
+        return done
+
+    def reset(self):
+        """ Reset the environment and return the new state """
+        self.life_count = None
+        return super().reset()

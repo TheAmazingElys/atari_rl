@@ -1,6 +1,4 @@
 import imageio, numpy
-
-from rl.environment import Environment
 from rl.utils import Signal, generator_true_every
 
 class Game():
@@ -50,5 +48,5 @@ class Game():
 
             self.current_state = next_state
             
-            if self.done and test_time:
+            if self.done:
                 self.on_game_ended.emit(self.cumulative_reward)
