@@ -48,5 +48,5 @@ class Game():
 
             self.current_state = next_state
             
-            if self.done:
+            if self.done and test_time:
                 self.on_game_ended.emit(self.cumulative_reward)

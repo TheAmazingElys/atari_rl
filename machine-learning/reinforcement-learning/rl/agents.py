@@ -63,10 +63,10 @@ class DoubleDQN():
 
         self.memory = PrioritizedMemory(parameters.capacity)
 
-        self.optimizer = optim.Adam(self.DQN.parameters(), lr = parameters.lr)
+        self.optimizer = optim.RMSprop(self.DQN.parameters(), lr = parameters.lr)
         self.parameters = parameters
 
-        self.it_s_replay_time = generator_true_every(self.parameters.batch_size)
+        self.it_s_replay_time = generator_true_every(1)
         self.it_s_update_frozen_time = generator_true_every(self.parameters.frozen_steps)
 
         self.it_s_action_debug_time = generator_true_every(1000)
@@ -87,7 +87,7 @@ class DoubleDQN():
         with torch.no_grad():
             self._reset_noise()
             values = self.DQN(torch.FloatTensor([state]).to(self.device)).cpu().data.numpy()[0]
-            if self.memory.total() > self.parameters.waiting_time:
+            if len(self.memory) > self.parameters.waiting_time:
                 selected_action = numpy.argmax(values)
                 if next(self.it_s_action_debug_time):
                     print(selected_action, values)
@@ -109,8 +109,9 @@ class DoubleDQN():
         if next(self.it_s_update_frozen_time):
             self._update_frozen()
         
-        if next(self.it_s_replay_time) and self.memory.total() > self.parameters.waiting_time/2:
+        if next(self.it_s_replay_time) and len(self.memory) > self.parameters.waiting_time:
             self._replay()
+
 
     def train(self):
         self.DQN.train()
@@ -145,7 +146,7 @@ class DoubleDQN():
             expected_state_values = torch.FloatTensor(batch.reward).to(self.device).unsqueeze(1)\
                 + self.parameters.gamma * self.DQN(torch.FloatTensor(batch.next_state).to(self.device)).max(1, True)[0]*(1 - torch.FloatTensor(batch.terminal).to(self.device).unsqueeze(1))
 
-        loss = F.smooth_l1_loss(state_values, expected_state_values)# Huber Loss
+        loss = F.mse_loss(state_values, expected_state_values)# MSE Loss
         self.on_loss_computed.emit(loss.cpu().data.numpy()) # Emit the computed loss
 
         self.optimizer.zero_grad()

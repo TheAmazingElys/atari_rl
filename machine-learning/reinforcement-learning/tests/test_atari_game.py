@@ -15,4 +15,4 @@ def test_atari_game():
 
     game.run(gif_path='tests/samples/spaceinvader.gif')
 
-    assert len(monitor.reward) > 0
+    assert len(monitor.loss) > 0

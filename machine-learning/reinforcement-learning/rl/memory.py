@@ -35,11 +35,14 @@ class PrioritizedMemory:   # stored as ( s, a, r, s_ , t)
 
     def __init__(self, capacity):
         self.tree = SumTree(capacity)
+        self.capacity = capacity
+        self.len = 0
 
-    def total(self):
-        return self.tree.total()
+    def __len__(self):
+        return self.len
 
-    def add(self, error, *args):                
+    def add(self, error, *args):     
+        self.len = min(self.capacity, self.len+1)           
         self.tree.add(self._compute_priority(error), Transition(*args)) 
 
     def sample(self, n):

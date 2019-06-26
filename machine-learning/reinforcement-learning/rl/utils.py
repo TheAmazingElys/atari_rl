@@ -10,7 +10,8 @@ class Signal():
 
     def connect(self, function):
         """ The connected functions will be called when the signal will emit"""
-        self.connected.append(function)
+        if function not in self.connected:
+            self.connected.append(function)
 
     def emit(self, *args, **kwargs):
         """ Call the connected functions """
