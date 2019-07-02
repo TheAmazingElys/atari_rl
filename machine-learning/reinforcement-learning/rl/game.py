@@ -18,7 +18,7 @@ class Game():
         self.current_state = self.environment.reset()
         self.done = False
 
-    def run(self, horizon = 1, gif_path = None, gif_in_color = False):
+    def run(self, horizon = 1):
 
         t = 0
         test_time = False
@@ -48,5 +48,5 @@ class Game():
 
             self.current_state = next_state
             
-            if self.done and test_time:
+            if self.done:
                 self.on_game_ended.emit(self.cumulative_reward)

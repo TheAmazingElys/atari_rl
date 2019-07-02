@@ -1,4 +1,28 @@
 import numpy as np
+from rl.game import Game
+from rl.environment import EnvNames
+from PIL import Image
+
+class GifCreator():
+
+    def __init__(self, game : Game):
+
+        self.states = []
+        self.game = game
+        game.on_game_ended.connect(self.save_gif)
+        game.environment.on_new_state.connect(self.append)
+
+    def append(self, state):
+        self.states.append(state)
+
+    def save_gif(self, reward):
+        path = f"gif/{str(int(reward))}_{self.game.environment.name}.gif"
+
+        self.states = [Image.fromarray(i_state) for i, i_state in enumerate(self.states) if i%3 ==0]
+        self.states[0].save(path, format='GIF', append_images=self.states[1:], save_all=True, duration=1, loop=0)
+        self.states = []
+
+
 
 class Monitor():
 

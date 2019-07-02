@@ -21,6 +21,7 @@ class Environment():
         
         self.on_new_state = Signal()
 
+        self.name = env_name.value
         self.env = gym.make(env_name.value)
         self.NUM_FRAMES = NUM_FRAMES # The number of time the action is repeated
 
@@ -62,6 +63,7 @@ class Environment():
         for i in range(self.NUM_FRAMES):
 
             state, reward, done, info = self.env.step(action)
+            self.on_new_state.emit(state)
             states.append(state)
             rewards += reward
             done = self.update_done(info, done)
@@ -71,7 +73,6 @@ class Environment():
                 self.reset()
                 break
         
-        self.on_new_state.emit(state)
         state = self.process_buffer.add_state(numpy.amax(states, axis = 0))
         state = self.process_buffer.get_processed_state()
 
