@@ -45,11 +45,11 @@ class AtariConvolution(torch.nn.Module):
     def __init__(self):
         super(AtariConvolution, self).__init__()
         self.input_shape = (84,84)
-        self.kernel_sizes = [5, 5, 3]
-        self.padding = [2, 2, 1]
-        self.stride = [3, 3, 1]
+        self.kernel_sizes = [5, 5]
+        self.padding = [2, 2]
+        self.stride = [3, 3]
 
-        self.out_channels = [32, 32, 64]
+        self.out_channels = [64, 64]
 
         self.in_channels = [4]+self.out_channels[:-1]
 
@@ -61,15 +61,16 @@ class AtariConvolution(torch.nn.Module):
             
             self.conv.append(nn.Conv2d(i_in_channel, i_out_channel, i_kernel, padding = i_padding, stride=i_stride))
             shape = compute_output(shape, i_kernel, i_padding, stride = i_stride) #Conv
+            self.conv.append(nn.BatchNorm2d(i_out_channel))
             self.conv.append(nn.ReLU())
             #self.conv.append(nn.MaxPool2d(kernel_size = (2,2), stride = 2))
             #shape = compute_output(shape, (2,2), 0, 2) # MaxPooling 2
 
         self.size = shape[0]*shape[1]*self.out_channels[-1]
 
-    def forward(self, x, activation = nn.functional.relu):
+    def forward(self, x):
         for i_conv in self.conv:
-            x = activation(i_conv(x))
+            x = i_conv(x)
         return x
 
 
