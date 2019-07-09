@@ -1,6 +1,5 @@
 matplotlib
 gym
-gym[atari]
 imageio
 opencv-python
 torch

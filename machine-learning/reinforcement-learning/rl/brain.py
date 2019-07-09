@@ -92,7 +92,7 @@ class DQN(torch.nn.Module):
         """ Gather the values corresponding to the played actions, everything by default"""
         return advantage_value if actions is None else torch.gather(advantage_value, 1, actions)
 
-    def __init__(self, env_module, actions, layer_size = 256):
+    def __init__(self, env_module, actions, layer_size = 1024):
         """
         env_module : An instance of the module that proceeds the state given by the environment
         actions : The number of action

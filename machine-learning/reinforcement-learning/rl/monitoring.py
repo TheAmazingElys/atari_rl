@@ -12,6 +12,8 @@ class GifCreator():
         game.on_game_ended.connect(self.save_gif)
         game.environment.on_new_state.connect(self.append)
 
+        self.last_rewards = []
+
     def append(self, state):
         self.states.append(state)
 
