@@ -65,10 +65,7 @@ class PrioritizedMemory:   # stored as ( s, a, r, s_ , t)
         self.error_buffer.append(error)
         self.cumulated_reward += transition.reward
 
-        print(not transition.terminal, transition.terminal)
-        print(len(self.transition_buffer), len(self.error_buffer))
         if not transition.terminal and len(self.transition_buffer) >= self.n_step - 1: #We move our window
-            print("add")
             self._add() 
 
         elif transition.terminal: #We unroll everything
