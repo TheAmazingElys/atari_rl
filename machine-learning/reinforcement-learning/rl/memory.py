@@ -57,7 +57,6 @@ class PrioritizedMemory:   # stored as ( s, a, r, s_ , t)
         self.transition_buffer = self.transition_buffer[1:]
         self.error_buffer = self.error_buffer[1:]
 
-
     def add(self, error, *args):     
         self.len = min(self.capacity, self.len+1)
 
@@ -66,15 +65,15 @@ class PrioritizedMemory:   # stored as ( s, a, r, s_ , t)
         self.error_buffer.append(error)
         self.cumulated_reward += transition.reward
 
-        if not transition.terminal: #We move our window
+        print(not transition.terminal, transition.terminal)
+        print(len(self.transition_buffer), len(self.error_buffer))
+        if not transition.terminal and len(self.transition_buffer) >= self.n_step - 1: #We move our window
+            print("add")
             self._add() 
 
-        else: #We unroll everything
+        elif transition.terminal: #We unroll everything
             for i in range(len(self.transition_buffer)):
                 self._add() 
-
-
-        self.tree.add(self._compute_priority(error), Transition(*args)) 
 
     def sample(self, n):
         batch = []
