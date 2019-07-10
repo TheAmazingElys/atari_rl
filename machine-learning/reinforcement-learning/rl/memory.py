@@ -33,16 +33,47 @@ class PrioritizedMemory:   # stored as ( s, a, r, s_ , t)
     e = 0.1
     b = 0.6
 
-    def __init__(self, capacity):
+
+    def __init__(self, capacity, n_step = 4):
         self.tree = SumTree(capacity)
         self.capacity = capacity
         self.len = 0
 
+        self.n_step = n_step
+
+        self.transition_buffer = []
+        self.error_buffer = []
+        self.cumulated_reward = 0
+
     def __len__(self):
         return self.len
 
+    def _add(self):
+        t = self.transition_buffer[0]
+        last_t = self.transition_buffer[-1]
+        transition = Transition(t.state, t.action, self.cumulated_reward, last_t.next_state, last_t.terminal)
+        self.tree.add(self.error_buffer[0], transition)
+
+        self.transition_buffer = self.transition_buffer[1:]
+        self.error_buffer = self.error_buffer[1:]
+
+
     def add(self, error, *args):     
-        self.len = min(self.capacity, self.len+1)           
+        self.len = min(self.capacity, self.len+1)
+
+        transition = Transition(*args)
+        self.transition_buffer.append(transition)
+        self.error_buffer.append(error)
+        self.cumulated_reward += transition.reward
+
+        if not transition.terminal: #We move our window
+            self._add() 
+
+        else: #We unroll everything
+            for i in range(len(self.transition_buffer)):
+                self._add() 
+
+
         self.tree.add(self._compute_priority(error), Transition(*args)) 
 
     def sample(self, n):
