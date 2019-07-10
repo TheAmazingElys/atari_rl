@@ -144,7 +144,7 @@ class DoubleDQN():
         )
         with torch.no_grad():
             expected_state_values = torch.FloatTensor(batch.reward).to(self.device).unsqueeze(1)\
-                + self.parameters.gamma * self.DQN(torch.FloatTensor(batch.next_state).to(self.device)).max(1, True)[0]*(1 - torch.FloatTensor(batch.terminal).to(self.device).unsqueeze(1))
+                + self.parameters.gamma ** self.memory.n_step * self.DQN(torch.FloatTensor(batch.next_state).to(self.device)).max(1, True)[0]*(1 - torch.FloatTensor(batch.terminal).to(self.device).unsqueeze(1))
 
         loss = F.mse_loss(state_values, expected_state_values)# MSE Loss
         self.on_loss_computed.emit(loss.cpu().data.numpy()) # Emit the computed loss
