@@ -54,6 +54,7 @@ class PrioritizedMemory:   # stored as ( s, a, r, s_ , t)
         transition = Transition(t.state, t.action, self.cumulated_reward, last_t.next_state, last_t.terminal)
         self.tree.add(self.error_buffer[0], transition)
 
+        self.cumulated_reward -= self.transition_buffer[0].reward
         self.transition_buffer = self.transition_buffer[1:]
         self.error_buffer = self.error_buffer[1:]
 
