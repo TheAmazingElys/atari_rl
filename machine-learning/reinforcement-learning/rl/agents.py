@@ -85,7 +85,6 @@ class DoubleDQN():
     def select_action(self, state):
         """ Return the selected action """
         with torch.no_grad():
-            self._reset_noise()
             values = self.DQN(torch.FloatTensor([state]).to(self.device)).cpu().data.numpy()[0]
             if len(self.memory) > self.parameters.waiting_time:
                 selected_action = numpy.argmax(values)
@@ -122,10 +121,6 @@ class DoubleDQN():
     def save(self):
         self.DQN.save_state_dict("model.torch")
 
-    def _reset_noise(self):
-        if hasattr(self.DQN, "reset_noise"):
-            self.DQN.reset_noise()
-
     def _replay(self):
         """
         Learn things
@@ -135,8 +130,6 @@ class DoubleDQN():
         # detailed explanation). This converts batch-array of Transitions
         # to Transition of batch-arrays.
         batch = Transition(*zip(*transitions))
-
-        self._reset_noise()
 
         state_values = self.DQN(\
             torch.FloatTensor(batch.state).to(self.device),\
@@ -152,5 +145,6 @@ class DoubleDQN():
         self.optimizer.zero_grad()
         loss.backward()
         for param in self.DQN.parameters():
-            param.grad.data.clamp_(-1, 1)
+            if hasattr(param,"grad") and hasattr(param.grad, "data"):
+                param.grad.data.clamp_(-1, 1)
         self.optimizer.step()

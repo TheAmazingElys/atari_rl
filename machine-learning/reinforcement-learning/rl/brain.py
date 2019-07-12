@@ -114,11 +114,6 @@ class DQN(torch.nn.Module):
         advantage_value =  self.compute_advantage_value(advantage, value)
         return DQN.gather(advantage_value, actions)
 
-    def reset_noise(self):
-        for name, module in self.named_children():
-            if hasattr(module, "reset_noise"):
-                module.reset_noise()
-
     def save_state_dict(self, PATH):
         torch.save(self.state_dict(), PATH)
 
@@ -128,44 +123,28 @@ class AtariDQN(DQN):
         super(AtariDQN, self).__init__(AtariConvolution(), actions)
 
 
-class NoisyLinear(nn.Module):
+class NoisyLinear(nn.Linear):
     """
     From Noisy Networks for Exploration at https://arxiv.org/abs/1706.10295
-    Code from https://github.com/Kaixhin/Rainbow/blob/master/model.py
     """
-    def __init__(self, in_features, out_features, std_init=0.5):
-        super(NoisyLinear, self).__init__()
-        self.in_features = in_features
-        self.out_features = out_features
-        self.std_init = std_init
-        self.weight_mu = nn.Parameter(torch.empty(out_features, in_features))
-        self.weight_sigma = nn.Parameter(torch.empty(out_features, in_features))
-        self.register_buffer('weight_epsilon', torch.empty(out_features, in_features))
-        self.bias_mu = nn.Parameter(torch.empty(out_features))
-        self.bias_sigma = nn.Parameter(torch.empty(out_features))
-        self.register_buffer('bias_epsilon', torch.empty(out_features))
+    def __init__(self, in_features, out_features, sigma_init=0.017, bias=True):
+        super(NoisyLinear, self).__init__(in_features, out_features, bias=bias)
+        self.sigma_weight = nn.Parameter(torch.Tensor(out_features, in_features).fill_(sigma_init))
+        self.register_buffer("epsilon_weight", torch.zeros(out_features, in_features))
+        if bias:
+            self.sigma_bias = nn.Parameter(torch.Tensor(out_features).fill_(sigma_init))
+            self.register_buffer("epsilon_bias", torch.zeros(out_features))
         self.reset_parameters()
-        self.reset_noise()
 
-    def reset_parameters(self):
-        mu_range = 1 / math.sqrt(self.in_features)
-        self.weight_mu.data.uniform_(-mu_range, mu_range)
-        self.weight_sigma.data.fill_(self.std_init / math.sqrt(self.in_features))
-        self.bias_mu.data.uniform_(-mu_range, mu_range)
-        self.bias_sigma.data.fill_(self.std_init / math.sqrt(self.out_features))
+        def reset_parameters(self):
+            std = math.sqrt(3 / self.in_features)
+            nn.init.uniform(self.weight, -std, std)
+            nn.init.uniform(self.bias, -std, std)
 
-    def _scale_noise(self, size):
-        x = torch.randn(size)
-        return x.sign().mul_(x.abs().sqrt_())
-
-    def reset_noise(self):
-        epsilon_in = self._scale_noise(self.in_features)
-        epsilon_out = self._scale_noise(self.out_features)
-        self.weight_epsilon.copy_(epsilon_out.ger(epsilon_in))
-        self.bias_epsilon.copy_(epsilon_out)
-
-    def forward(self, input):
-        if self.training:
-            return F.linear(input, self.weight_mu + self.weight_sigma * self.weight_epsilon, self.bias_mu + self.bias_sigma * self.bias_epsilon)
-        else:
-            return F.linear(input, self.weight_mu, self.bias_mu)
+        def forward(self, input):
+            torch.randn(self.epsilon_weight.size(), out=self.epsilon_weight)
+            bias = self.bias
+            if bias is not None:
+                 torch.randn(self.epsilon_bias.size(), out=self.epsilon_bias)
+                 bias = bias + self.sigma_bias * Variable(self.epsilon_bias)
+            return F.linear(input, self.weight + self.sigma_weight * Variable(self.epsilon_weight), bias)
