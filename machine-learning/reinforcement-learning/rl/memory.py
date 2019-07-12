@@ -29,6 +29,8 @@ class PrioritizedMemory:   # stored as ( s, a, r, s_ , t)
     """
     prioritized by error; see Schaul T. et al. - Prioritized experience replay, 2016
     From https://github.com/jaromiru/ai_examples/blob/master/open_gym/utils.py with some modifications
+
+    n-step rewards; see Sutton, R. S., and Barto, A. G. 1998. Reinforcement Learning: An Introduction
     """
     e = 0.1
     b = 0.6
@@ -49,6 +51,7 @@ class PrioritizedMemory:   # stored as ( s, a, r, s_ , t)
         return self.len
 
     def _add(self):
+        """ Add the oldest transition of the buffer to the memory """
         t = self.transition_buffer[0]
         last_t = self.transition_buffer[-1]
         transition = Transition(t.state, t.action, self.cumulated_reward, last_t.next_state, last_t.terminal)
@@ -58,7 +61,12 @@ class PrioritizedMemory:   # stored as ( s, a, r, s_ , t)
         self.transition_buffer = self.transition_buffer[1:]
         self.error_buffer = self.error_buffer[1:]
 
-    def add(self, error, *args):     
+    def add(self, error, *args):
+        """ 
+        Add the transition to the buffer. 
+        Add the oldest state to the memory if the buffer of size $n_step is full.
+        Add the entire buffer to the memory if the state is terminal
+        """     
         self.len = min(self.capacity, self.len+1)
 
         transition = Transition(*args)

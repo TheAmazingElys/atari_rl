@@ -54,6 +54,7 @@ class Monitor():
         if len(self.loss) > 0:
             print(f"Reward: {reward}, Loss: {np.mean(self.loss)}")
             self.loss.clear()
+            self.reward.clear()
 
     def log_loss(self, loss):
         self.loss.append(loss)
