@@ -11,8 +11,8 @@ def compute_padding_same(input_size, kernel, stride = 1, dilatation = 1):
     Kernel should be odd for this to work
     """
     paddings = []
-    input_size = input_size if type(input_size) == tuple else (input_size)
-    kernel = kernel if type(kernel) == tuple else ([kernel]*len(input_size))
+    input_size = input_size if type(input_size) == tuple else (input_size,)
+    kernel = kernel if type(kernel) == tuple else ([kernel]*len(input_size),)
     for i_size, i_kernel in zip(input_size, kernel):
         output_size = i_size
         x = Symbol("padding")
@@ -22,9 +22,9 @@ def compute_padding_same(input_size, kernel, stride = 1, dilatation = 1):
 def compute_output(input_size, kernel, padding, stride = 1, dilatation = 1):
     """ Compute the shape of the output """
     output = []
-    input_size = input_size if type(input_size) == tuple else (input_size)
-    kernel = kernel if type(kernel) == tuple else ([kernel]*len(input_size))
-    padding = padding if type(padding) == tuple else ([padding]*len(input_size))
+    input_size = input_size if type(input_size) == tuple else (input_size,)
+    kernel = kernel if type(kernel) == tuple else ([kernel]*len(input_size),)
+    padding = padding if type(padding) == tuple else ([padding]*len(input_size),)
 
     for i_input_size, i_kernel, i_padding in zip(input_size, kernel, padding):
         output.append(int((i_input_size + i_padding*2 - (i_kernel-1)*(dilatation) - 1)/stride + 1 ))
