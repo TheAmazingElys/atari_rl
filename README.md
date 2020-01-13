@@ -1,5 +1,3 @@
-# Some random scripts and notebooks
-
 ## Machine-Learning
 
 ### Reinforcement-Learning
