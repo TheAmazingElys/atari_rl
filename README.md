@@ -11,3 +11,6 @@ Contains minimal examples of utilizations of useful libraries:
 - airflow
 - zmq
 
+## Script
+- tdd: a script useful for Test Driven Development
+
