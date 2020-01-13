@@ -1,4 +1,0 @@
-click
-watchdog
-pytest
-pytest-cov

@@ -1,1 +1,0 @@
-Run "python start_tdd.py source/ test/"
